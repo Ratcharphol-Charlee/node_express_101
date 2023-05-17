@@ -7,7 +7,6 @@ app.get("/", (req, res) => {
   let userId = req.query.userId;
   
   if (userId == "0000") {
-  
     res.status(200).send({
       message: "Welcome , Administrator!",
       token: "dawd4w5a2rgr5t2r2t5t78r44gr5sdf556k4iu5k6",
