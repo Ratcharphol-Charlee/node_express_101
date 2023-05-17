@@ -1,11 +1,12 @@
 const bodyParser = require("body-parser");
 const jsonParser = bodyParser.json();
+
+const { client } = require("../config/database-connect");
+const { next } = require("cors");
 const jose = require("jose");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
 
-const { client } = require("../middleware/database-connect");
-const { query } = require("express");
 client.connect();
 const getAll = (req, res) => {
   client.query('SELECT * FROM public."user"', (err, res) => {
@@ -23,25 +24,26 @@ const login = async (req, res) => {
   let query = `SELECT * FROM public."user" WHERE "userName" = '${userName}'`;
   const pg_response = await client.query(query);
 
-  const match = await bcrypt.compare(password, pg_response.rows[0].password);
   if (pg_response) {
+
     if (pg_response.rows.length > 0) {
+      
+      const match = await bcrypt.compare(
+        password,
+        pg_response.rows[0].password
+      );
       if (match) {
         res.status(200).send({
-          status: "200 OK",
+          message: "OK",
           query: pg_response.rows[0],
           total: pg_response.rows.length,
         });
       } else {
-        res.status(401).send({
-          status: "401 Unauthorized",
-          query: pg_response.rows[0],
-          total: pg_response.rows.length,
-        });
+        res.status(401).send({message:"Unauthorized"});
       }
     } else {
-      res.status(401).send({
-        status: "404 ไม่พบผู้ใช้",
+      res.status(404).send({
+        status: "Not Found",
         query: pg_response.rows[0],
         total: pg_response.rows.length,
       });
@@ -51,7 +53,6 @@ const login = async (req, res) => {
 };
 
 const register = async (req, res) => {
-
   try {
     const { userName, password, email, phone } = req.body;
     if (!(userName && password && email && phone)) {
@@ -71,16 +72,17 @@ const register = async (req, res) => {
     } else {
       const hash = await bcrypt.hash(password, saltRounds);
       const query = `INSERT INTO public."user" ("userName", "password", "email", "phone") VALUES ('${userName}', '${hash}', '${email}', '${phone}')`;
-      console.log(query);
+
       const pg_response = await client.query(query);
-      console.log(pg_response.rowCount);
+      // console.log(pg_response.rowCount);
       if (pg_response.rowCount > 0) {
-        res.status(201).setHeader("Content-Type", "application/json").send(`effected ${pg_response.rowCount} row`);
+        res.status(201).send(`effected 1 row`);
+      } else {
+        res.status(500).send({
+          status: "500 Internal Server Error",
+          message: `Not Success INSERT data`,
+        });
       }
-      res.status(500).send({
-        status: "500 Internal Server Error",
-        message: `Not Success INSERT data`,
-      });
     }
   } catch (err) {
     console.log(err.message);
